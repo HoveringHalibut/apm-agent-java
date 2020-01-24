@@ -135,14 +135,17 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
                                           @Advice.Enter @Nullable Span span,
                                           @Advice.Thrown @Nullable Throwable t) throws SQLException {
             if (span != null) {
-                if( t == null){
-                    span.getContext()
-                        .getDb()
-                        .withAffectedRowsCount(statement.getUpdateCount());
+                try{
+                    if( t == null){
+                        span.getContext()
+                            .getDb()
+                            .withAffectedRowsCount(statement.getUpdateCount());
+                    }
+                }finally{
+                    span.captureException(t)
+                        .deactivate()
+                        .end();
                 }
-                span.captureException(t)
-                    .deactivate()
-                    .end();
             }
         }
     }
@@ -369,15 +372,17 @@ public abstract class StatementInstrumentation extends ElasticApmInstrumentation
                                           @Advice.Enter @Nullable Span span,
                                           @Advice.Thrown Throwable t) throws SQLException {
             if (span != null) {
-                span.getContext()
-                    .getDb()
-                    // getUpdateCount javadoc indicates that this method should be called only once
-                    // however in practice adding this extra call seem to not have noticeable side effects
-                    .withAffectedRowsCount(statement.getUpdateCount());
-
-                span.captureException(t)
-                    .deactivate()
-                    .end();
+                try{
+                    span.getContext()
+                        .getDb()
+                        // getUpdateCount javadoc indicates that this method should be called only once
+                        // however in practice adding this extra call seem to not have noticeable side effects
+                        .withAffectedRowsCount(statement.getUpdateCount());
+                }finally{
+                    span.captureException(t)
+                        .deactivate()
+                        .end();
+                }
             }
         }
     }
